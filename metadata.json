@@ -1,0 +1,5 @@
+{
+  "name": "Remix: خيمتي (Tent Manager)",
+  "description": "تطبيق متكامل لإدارة حجوزات الخيام، تتبع الزبائن، والعمليات المالية مع ميزات البحث والفلترة.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "A customer who makes bookings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "lastBookingDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "phone"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A tent booking record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tentId": { "type": "string" },
+        "tentSize": { "type": "string", "enum": ["12/12", "9/12", "9/9", "12/15"] },
+        "location": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "totalPrice": { "type": "number" },
+        "deposit": { "type": "number" },
+        "remaining": { "type": "number" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "pickupTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "cancelled"] },
+        "reminder24hSent": { "type": "boolean" },
+        "reminder1hSent": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "tentId", "tentSize", "location", "customerId", "customerName", "customerPhone", "totalPrice", "deposit", "remaining", "startDate", "endDate", "pickupTime", "status", "createdAt"]
+    },
+    "Challenge": {
+      "title": "Challenge",
+      "description": "A financial challenge to reach a target amount.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "targetAmount": { "type": "number" },
+        "currentAmount": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "appliances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "bought": { "type": "boolean" }
+            },
+            "required": ["id", "name", "bought"]
+          }
+        }
+      },
+      "required": ["id", "targetAmount", "currentAmount", "startDate", "endDate", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/customers": {
+      "schema": "Customer",
+      "description": "Collection of customers."
+    },
+    "/bookings": {
+      "schema": "Booking",
+      "description": "Collection of bookings."
+    },
+    "/challenges": {
+      "schema": "Challenge",
+      "description": "Collection of challenges."
+    }
+  }
+}

@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: customers
+    // Document ID: customerId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - phone: string (required)
+    //   - lastBookingDate: string (optional)
+    //
+    // Collection: bookings
+    // Document ID: bookingId
+    // Fields:
+    //   - id: string (required)
+    //   - tentId: string (required)
+    //   - tentSize: string (required)
+    //   - location: string (required)
+    //   - customerId: string (required)
+    //   - customerName: string (required)
+    //   - customerPhone: string (required)
+    //   - totalPrice: number (required)
+    //   - deposit: number (required)
+    //   - remaining: number (required)
+    //   - startDate: string (required)
+    //   - endDate: string (required)
+    //   - pickupTime: string (required)
+    //   - status: string (required)
+    //   - reminder24hSent: bool (optional)
+    //   - reminder1hSent: bool (optional)
+    //   - createdAt: string (required)
+    //
+    // Collection: challenges
+    // Document ID: challengeId
+    // Fields:
+    //   - id: string (required)
+    //   - targetAmount: number (required)
+    //   - currentAmount: number (required)
+    //   - startDate: string (required)
+    //   - endDate: string (required)
+    //   - updatedAt: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "tamnabil6@gmail.com" && request.auth.token.email_verified == true) ||
+        request.auth.token.email == "tamnabil99@gmail.com" ||
+        request.auth.token.email == "chamschams0724@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidCustomer(data) {
+      return data.id is string && data.id.size() < 100 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() < 20 &&
+             (!('lastBookingDate' in data) || (data.lastBookingDate is string && data.lastBookingDate.size() < 100));
+    }
+
+    function isValidBooking(data) {
+      return data.id is string && data.id.size() < 100 &&
+             data.tentId is string && data.tentId.size() < 100 &&
+             data.tentSize in ["12/12", "9/12", "9/9", "12/15"] &&
+             data.location is string && data.location.size() < 100 &&
+             data.customerId is string && data.customerId.size() < 100 &&
+             data.customerName is string && data.customerName.size() < 100 &&
+             data.customerPhone is string && data.customerPhone.size() < 20 &&
+             data.totalPrice is number && data.totalPrice >= 0 &&
+             data.deposit is number && data.deposit >= 0 &&
+             data.remaining is number && data.remaining >= 0 &&
+             data.startDate is string && data.startDate.size() < 100 &&
+             data.endDate is string && data.endDate.size() < 100 &&
+             data.pickupTime is string && data.pickupTime.size() < 100 &&
+             data.status in ["active", "completed", "cancelled"] &&
+             data.createdAt is string && data.createdAt.size() < 100;
+    }
+
+    function isValidChallenge(data) {
+      return data.id is string && data.id.size() < 100 &&
+             data.targetAmount is number && data.targetAmount >= 0 &&
+             data.currentAmount is number && data.currentAmount >= 0 &&
+             data.startDate is string && data.startDate.size() < 100 &&
+             data.endDate is string && data.endDate.size() < 100 &&
+             data.updatedAt is string && data.updatedAt.size() < 100 &&
+             (!('appliances' in data) || (data.appliances is list && data.appliances.size() <= 30));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidCustomer(request.resource.data);
+      allow update: if isAuthenticated() && isValidCustomer(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidBooking(request.resource.data);
+      allow update: if isAuthenticated() && isValidBooking(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    match /challenges/{challengeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidChallenge(request.resource.data);
+      allow update: if isAuthenticated() && isValidChallenge(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

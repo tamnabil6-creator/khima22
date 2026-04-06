@@ -17,63 +17,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const handleLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await signInWithPopup(auth, googleProvider);
-      onLoginSuccess();
-    } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.code === 'auth/popup-blocked') {
-        setError('تم حظر النافذة المنبثقة. يرجى السماح بالمنبثقات لهذا الموقع أو المحاولة من متصفح آخر.');
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        setError('تم إلغاء عملية تسجيل الدخول.');
-      } else if (err.code === 'auth/internal-error') {
-        setError('حدث خطأ داخلي. يرجى المحاولة مرة أخرى.');
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError('هذا النطاق غير مصرح به في إعدادات Firebase. يرجى إضافة النطاق الحالي إلى قائمة النطاقات المصرح بها.');
-      } else {
+  const handleLoginWithCode = async (code: string) => {
+    if (code === '1999') {
+      setLoading(true);
+      setError(null);
+      try {
+        await signInAnonymously(auth);
+        onLoginSuccess();
+      } catch (err: any) {
+        console.error("Login error:", err);
         setError(`خطأ: ${err.message || 'حدث خطأ غير متوقع'}`);
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
+    } else {
+      setError('كود الدخول غير صحيح. يرجى المحاولة مرة أخرى.');
     }
   };
 
-  const handleRedirectLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await signInWithRedirect(auth, googleProvider);
-      // No need for onLoginSuccess here as it will redirect back
-    } catch (err: any) {
-      console.error("Redirect login error:", err);
-      setError(`خطأ: ${err.message || 'حدث خطأ غير متوقع'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await signInAnonymously(auth);
-      onLoginSuccess();
-    } catch (err: any) {
-      console.error("Guest login error:", err);
-      if (err.code === 'auth/unauthorized-domain') {
-        setError(`هذا النطاق غير مصرح به. يرجى إضافة "${window.location.hostname}" إلى قائمة النطاقات المصرح بها في Firebase Console.`);
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError('تسجيل الدخول كضيف غير مفعل. يرجى تفعيل "Anonymous" في إعدادات Firebase Authentication.');
-      } else {
-        setError(`فشل الدخول كضيف: ${err.message || 'يرجى المحاولة لاحقاً'}`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [accessCode, setAccessCode] = React.useState('');
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
@@ -129,7 +91,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div className="space-y-3">
             <h2 className="text-3xl font-black text-foreground tracking-tight">مرحباً بكِ مجدداً</h2>
             <p className="text-muted-foreground font-bold text-lg leading-relaxed">
-              اضغطي على الزر أدناه للبدء في إدارة حجوزاتكِ بكل سهولة وأمان
+              أدخلي كود الدخول للبدء في إدارة حجوزاتكِ بكل سهولة وأمان
             </p>
           </div>
 
@@ -147,12 +109,23 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             )}
           </AnimatePresence>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <input
+                type="password"
+                placeholder="أدخلي كود الدخول..."
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                className="w-full px-8 py-5 bg-muted/50 border-2 border-border/50 rounded-[2rem] text-center text-2xl font-black tracking-[0.5em] focus:border-primary focus:ring-0 transition-all placeholder:tracking-normal placeholder:text-lg"
+                onKeyDown={(e) => e.key === 'Enter' && handleLoginWithCode(accessCode)}
+              />
+            </div>
+
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleLogin}
-              disabled={loading}
+              onClick={() => handleLoginWithCode(accessCode)}
+              disabled={loading || !accessCode}
               className="w-full flex items-center justify-center gap-4 px-10 py-6 bg-primary text-primary-foreground rounded-[2rem] font-black text-xl shadow-2xl shadow-primary/20 hover:shadow-primary/40 transition-all disabled:opacity-50 relative group overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
@@ -161,24 +134,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               ) : (
                 <>
                   <LogIn size={28} />
-                  <span>دخول المسؤول (Google)</span>
-                </>
-              )}
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleGuestLogin}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-4 px-10 py-5 bg-foreground text-background rounded-[2rem] font-black text-lg shadow-xl shadow-foreground/10 hover:shadow-foreground/20 transition-all disabled:opacity-50 relative group overflow-hidden"
-            >
-              {loading ? (
-                <div className="w-6 h-6 border-4 border-background border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LogIn size={22} />
-                  <span>دخول سريع (زائر)</span>
+                  <span>دخول المسؤول</span>
                 </>
               )}
             </motion.button>
